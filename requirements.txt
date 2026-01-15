@@ -1,5 +1,5 @@
 flask
-gunicorn
-neo4j
+flask-cors
 pymongo
-python-dotenv
+neo4j
+gunicorn
