@@ -1,10 +1,17 @@
 from flask import Flask, jsonify, request
-from flask_cors import CORS   # 👈 THÊM
+from flask_cors import CORS
 from mongo_client import fruit_col
 from neo4j_client import run_cypher
 
 app = Flask(__name__)
-CORS(app)   # 👈 THÊM DÒNG NÀY
+
+CORS(
+    app,
+    resources={r"/api/*": {"origins": [
+        "https://yyyg.onrender.com",
+        "https://fruit-api-yyyg.onrender.com"
+    ]}}
+)
 
 # ================= SEARCH =================
 @app.route("/api/fruits/search", methods=["GET"])
