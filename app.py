@@ -135,49 +135,64 @@ def delete_fruit(fruit_id):
 # ================= DASHBOARD =================
 @app.route("/api/stats/dashboard", methods=["GET"])
 def stats_dashboard():
-    total_fruits_mongo = fruit_col.count_documents({})
+    try:
+        # ===== 1. MONGODB STATS =====
+        total_fruits_mongo = fruit_col.count_documents({})
 
-    fruits_by_season = list(fruit_col.aggregate([
-        {"$unwind": "$harvest_season"},
-        {"$group": {"_id": "$harvest_season", "count": {"$sum": 1}}},
-        {"$sort": {"count": -1}}
-    ]))
+        fruits_by_season = list(fruit_col.aggregate([
+            {"$match": {"harvest_season": {"$exists": True, "$ne": []}}},
+            {"$unwind": "$harvest_season"},
+            {"$group": {"_id": "$harvest_season", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}}
+        ]))
 
-    fruits_by_region = list(fruit_col.aggregate([
-        {"$unwind": "$regions"},
-        {"$group": {"_id": "$regions", "count": {"$sum": 1}}},
-        {"$sort": {"count": -1}}
-    ]))
+        fruits_by_region = list(fruit_col.aggregate([
+            {"$match": {"regions": {"$exists": True, "$ne": []}}},
+            {"$unwind": "$regions"},
+            {"$group": {"_id": "$regions", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}}
+        ]))
 
-    graph_overview = run_cypher("""
+        # ===== 2. NEO4J STATS =====
+        cypher_overview = """
         MATCH (f:Fruit)
         OPTIONAL MATCH (f)-[:HAS_BENEFIT]->(b:Benefit)
         RETURN count(DISTINCT f) AS total_fruits,
                count(DISTINCT b) AS total_benefits
-    """)[0]
+        """
+        overview_result = run_cypher(cypher_overview)
+        graph_overview = overview_result[0] if overview_result else {
+            "total_fruits": 0,
+            "total_benefits": 0
+        }
 
-    top_fruits = run_cypher("""
+        cypher_top = """
         MATCH (f:Fruit)-[:HAS_BENEFIT]->(b:Benefit)
         RETURN f.fruit_id AS fruit_id,
                count(b) AS benefit_count
         ORDER BY benefit_count DESC
         LIMIT 5
-    """)
+        """
+        top_fruits = run_cypher(cypher_top) or []
 
-    return jsonify({
-        "mongo": {
-            "total_fruits": total_fruits_mongo,
-            "by_season": fruits_by_season,
-            "by_region": fruits_by_region
-        },
-        "neo4j": {
-            "total_fruits": graph_overview["total_fruits"],
-            "total_benefits": graph_overview["total_benefits"],
-            "top_fruits_by_benefits": top_fruits
-        }
-    })
+        return jsonify({
+            "mongo": {
+                "total_fruits": total_fruits_mongo,
+                "by_season": fruits_by_season,
+                "by_region": fruits_by_region
+            },
+            "neo4j": {
+                "total_fruits": graph_overview["total_fruits"],
+                "total_benefits": graph_overview["total_benefits"],
+                "top_fruits_by_benefits": top_fruits
+            }
+        })
 
-
+    except Exception as e:
+        return jsonify({
+            "error": "Dashboard failed",
+            "detail": str(e)
+        }), 500
 # ================= ENTRY POINT (RENDER SAFE) =================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
