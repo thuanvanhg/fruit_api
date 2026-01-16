@@ -124,6 +124,6 @@ def stats_dashboard():
 # ================= VERSION CHECK =================
 @app.route("/api/version")
 def api_version():
-    return "VERSION_2026_01_16"
+    return "VERSION_2026_01_16_FIX"
 
 
