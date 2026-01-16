@@ -118,8 +118,7 @@ try:
         neo4j_stats["total_cong_dung"] = r[0].get("total_cong_dung", 0)
 except Exception as e:
     neo4j_stats["error"] = str(e)
-
-return jsonify({
+    return jsonify({
         "mongo": {
             "total_fruits": total_fruits_mongo,
             "by_season": fruits_by_season,
