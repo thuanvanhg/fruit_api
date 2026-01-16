@@ -122,6 +122,6 @@ def stats_dashboard():
         "neo4j": neo4j_stats
     })
     @app.route("/api/version")
-def api_version():
+    def api_version():
     return "VERSION_2026_01_16"
 
