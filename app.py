@@ -6,14 +6,12 @@ from neo4j_client import run_cypher
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-
 # ================= ROOT =================
 @app.route("/")
 def home():
     return "Fruit API is running"
 
-
-# ================= DEBUG ROUTES =================
+# ================= DEBUG =================
 @app.route("/api/routes")
 def list_routes():
     return jsonify(sorted([str(r) for r in app.url_map.iter_rules()]))
@@ -25,7 +23,6 @@ def test_neo4j():
         return jsonify(r)
     except Exception as e:
         return jsonify({"neo4j_error": str(e)}), 500
-
 
 # ================= SEARCH =================
 @app.route("/api/fruits/search", methods=["GET"])
@@ -52,18 +49,13 @@ def search_fruit():
         cong_dung = []
         try:
             cypher = """
-            MATCH (:Class {label_en:"Fruit"})
-            <-[:SUBCLASS_OF]-(sc:Class)
-            <-[:INSTANCE_OF]-(f:FruitIndividual)
-            OPTIONAL MATCH (f)-[:CO_CONG_DUNG|HAS_BENEFIT|HAS_USE]->(u)
-            RETURN
-              count(DISTINCT f) AS total_fruits,
-              count(DISTINCT u) AS total_cong_dung
+            MATCH (f:FruitIndividual {fruit_id:$fruit_id})
+            OPTIONAL MATCH (f)-[:CO_CONG_DUNG|HAS_USE|HAS_BENEFIT]->(u)
+            RETURN collect(DISTINCT u.name) AS cong_dung
             """
-
             r = run_cypher(cypher, {"fruit_id": fruit.get("fruit_id")})
-            if r and r[0].get("cong_dung"):
-                cong_dung = r[0]["cong_dung"]
+            if r:
+                cong_dung = r[0].get("cong_dung", [])
         except Exception as e:
             print("Neo4j error (search):", e)
 
@@ -75,16 +67,16 @@ def search_fruit():
             "detail": fruit
         })
 
-        return jsonify({
+    return jsonify({
         "query": keyword,
         "total": len(results),
         "results": results
-        })
-
+    })
 
 # ================= DASHBOARD =================
 @app.route("/api/stats/dashboard", methods=["GET"])
 def stats_dashboard():
+
     # ---------- Mongo ----------
     total_fruits_mongo = fruit_col.count_documents({})
 
@@ -99,26 +91,29 @@ def stats_dashboard():
     ]))
 
     # ---------- Neo4j ----------
-neo4j_stats = {
-    "total_fruits": 0,
-    "total_cong_dung": 0
-}
+    neo4j_stats = {
+        "total_fruits": 0,
+        "total_cong_dung": 0
+    }
 
-try:
-    cypher = """
-    MATCH (f:FruitIndividual)
-    OPTIONAL MATCH (f)-[:CO_CONG_DUNG|HAS_USE]->(u)
+    try:
+        cypher = """
+        MATCH (:Class {name:"Trái cây"})
+              <-[:SUBCLASS_OF]-(sub:Class)
+              <-[:INSTANCE_OF]-(f:FruitIndividual)
+        OPTIONAL MATCH (f)-[:CO_CONG_DUNG|HAS_USE|HAS_BENEFIT]->(u)
         RETURN
             count(DISTINCT f) AS total_fruits,
             count(DISTINCT u) AS total_cong_dung
-    """
-    r = run_cypher(cypher)
-    if r:
-        neo4j_stats["total_fruits"] = r[0].get("total_fruits", 0)
-        neo4j_stats["total_cong_dung"] = r[0].get("total_cong_dung", 0)
-except Exception as e:
-    neo4j_stats["error"] = str(e)
-      return jsonify({
+        """
+        r = run_cypher(cypher)
+        if r:
+            neo4j_stats["total_fruits"] = r[0]["total_fruits"]
+            neo4j_stats["total_cong_dung"] = r[0]["total_cong_dung"]
+    except Exception as e:
+        neo4j_stats["error"] = str(e)
+
+    return jsonify({
         "mongo": {
             "total_fruits": total_fruits_mongo,
             "by_season": fruits_by_season,
@@ -126,9 +121,8 @@ except Exception as e:
         },
         "neo4j": neo4j_stats
     })
-# ================= VERSION CHECK =================
+
+# ================= VERSION =================
 @app.route("/api/version")
 def api_version():
     return "VERSION_2026_01_16_FIX"
-
-
