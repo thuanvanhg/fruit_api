@@ -52,10 +52,15 @@ def search_fruit():
         cong_dung = []
         try:
             cypher = """
-            MATCH (f:Fruit {fruit_id:$fruit_id})
+            MATCH (:Class {label_en:"Fruit"})
+            <-[:SUBCLASS_OF]-(sc:Class)
+            <-[:INSTANCE_OF]-(f:FruitIndividual)
             OPTIONAL MATCH (f)-[:CO_CONG_DUNG|HAS_BENEFIT|HAS_USE]->(u)
-            RETURN collect(DISTINCT u.name) AS cong_dung
+            RETURN
+              count(DISTINCT f) AS total_fruits,
+              count(DISTINCT u) AS total_cong_dung
             """
+
             r = run_cypher(cypher, {"fruit_id": fruit.get("fruit_id")})
             if r and r[0].get("cong_dung"):
                 cong_dung = r[0]["cong_dung"]
