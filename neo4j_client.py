@@ -1,21 +1,19 @@
-import os
 from neo4j import GraphDatabase
-from dotenv import load_dotenv
+import os
 
-load_dotenv()
+NEO4J_URI = os.getenv("NEO4J_URI")
+NEO4J_USER = os.getenv("NEO4J_USER")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 
 driver = GraphDatabase.driver(
-    os.getenv("NEO4J_URI"),
-    auth=(
-        os.getenv("NEO4J_USER"),
-        os.getenv("NEO4J_PASSWORD")
-    )
+    NEO4J_URI,
+    auth=(NEO4J_USER, NEO4J_PASSWORD)
 )
 
 def run_cypher(query, params=None):
-    with driver.session() as session:
+    with driver.session(database="neo4j") as session:  # 👈 RẤT QUAN TRỌNG
         result = session.run(query, params or {})
-        return [r.data() for r in result]
+        return [record.data() for record in result]
 
 
     
