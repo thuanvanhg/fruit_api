@@ -99,23 +99,24 @@ def stats_dashboard():
     ]))
 
     # ---------- Neo4j ----------
-    neo4j_stats = {
-        "total_fruits": 0,
-        "total_cong_dung": 0
-    }
+neo4j_stats = {
+    "total_fruits": 0,
+    "total_cong_dung": 0
+}
 
     try:
         cypher = """
-        MATCH (f:Fruit)
-        OPTIONAL MATCH (f)-[:CO_CONG_DUNG|HAS_BENEFIT|HAS_USE]->(u)
-        RETURN count(DISTINCT f) AS total_fruits,
-               count(DISTINCT u) AS total_cong_dung
+        MATCH (f:FruitIndividual)
+        OPTIONAL MATCH (f)-[:CO_CONG_DUNG|HAS_USE]->(u)
+        RETURN
+            count(DISTINCT f) AS total_fruits,
+            count(DISTINCT u) AS total_cong_dung
         """
         r = run_cypher(cypher)
-        if r:
-            neo4j_stats = r[0]
+    if r:
+        neo4j_stats["total_fruits"] = r[0].get("total_fruits", 0)
+        neo4j_stats["total_cong_dung"] = r[0].get("total_cong_dung", 0)
     except Exception as e:
-        print("Neo4j error (dashboard):", e)
         neo4j_stats["error"] = str(e)
 
     return jsonify({
