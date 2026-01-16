@@ -75,11 +75,11 @@ def search_fruit():
             "detail": fruit
         })
 
-    return jsonify({
+        return jsonify({
         "query": keyword,
         "total": len(results),
         "results": results
-    })
+        })
 
 
 # ================= DASHBOARD =================
@@ -119,7 +119,7 @@ try:
 except Exception as e:
     neo4j_stats["error"] = str(e)
 
-    return jsonify({
+return jsonify({
         "mongo": {
             "total_fruits": total_fruits_mongo,
             "by_season": fruits_by_season,
