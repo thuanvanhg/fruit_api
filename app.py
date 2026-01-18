@@ -126,3 +126,7 @@ def stats_dashboard():
 @app.route("/api/version")
 def api_version():
     return "VERSION_2026_01_16_FIX"
+
+if __name__ == "__main__":
+    app.run()
+
