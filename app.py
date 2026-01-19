@@ -199,7 +199,14 @@ def stats_dashboard():
             "detail": str(e)
         }), 500
 
-
+@app.route("/api/neo4j/test")
+def neo4j_test():
+    result = run_cypher("MATCH (f:Fruit) RETURN count(f) AS count")
+    return {
+        "db": "neo4j",
+        "label": "Fruit",
+        "count": result[0]["count"]
+    }
 # ================= POSTGRES =================
 
 @app.route("/api/postgres/test")
